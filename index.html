@@ -408,9 +408,9 @@
       </div>
       <div class="chips-scroll" id="mob-filter-chips">
         <button class="chip-btn active" onclick="setMobileFilter('all', this)">Alla</button>
-        <button class="chip-btn" onclick="setMobileFilter('en', this)">🇬🇧 Engelska</button>
-        <button class="chip-btn" onclick="setMobileFilter('ja', this)">🇯🇵 Japanska</button>
-        <button class="chip-btn" onclick="setMobileFilter('zh', this)">🇨🇳 Kinesiska</button>
+        <button class="chip-btn" onclick="setMobileFilter('en', this)">Engelska</button>
+        <button class="chip-btn" onclick="setMobileFilter('ja', this)">Japanska</button>
+        <button class="chip-btn" onclick="setMobileFilter('zh', this)">Kinesiska</button>
       </div>
     </div>
 
@@ -655,7 +655,7 @@
         const fallbackImg = meta.imageUrl || meta.images?.["en"] || "";
         const unitPrice = meta.prices?.market || 0.0;
         const subtotal = unitPrice * (item.quantity || 1);
-        const flagBadge = lang === 'ja' ? '🇯🇵 JA' : lang === 'zh' ? '🇨🇳 ZH' : '🇬🇧 EN';
+        const flagBadge = lang === 'ja' ? 'JA' : lang === 'zh' ? 'ZH' : 'EN';
 
         const userSetPills = (item.userSets || []).map(us => `<span class="tag-badge" style="background:#0284c7; color:#fff;">📁 ${escapeHtml(us)}</span>`).join(" ");
 
