@@ -338,7 +338,12 @@
     <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.4rem;">
       Ange din personliga PIN för att låsa upp och dekryptera datan.
     </p>
-    <input type="password" id="pin-input" class="pin-input" pattern="[0-9]*" inputmode="numeric" placeholder="••••" maxlength="8">
+    <div style="position:relative; width:100%; max-width:280px;">
+      <input type="password" id="pin-input" class="pin-input" pattern="[0-9]*" inputmode="numeric" placeholder="••••" maxlength="8" onkeyup="if(event.key===\'Enter\') attemptUnlock()" style="width:100%; padding-right:2.75rem;">
+      <button type="button" onclick="togglePinVisibility()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.15rem; padding:4px;">
+        <i id="pin-eye-icon" class="fa-solid fa-eye"></i>
+      </button>
+    </div>
     <button class="btn-unlock" onclick="attemptUnlock()">
       Lås Upp
     </button>
@@ -394,6 +399,18 @@
     let DECRYPTED_PAYLOAD = null;
     let ACTIVE_FILTER = 'all';
 
+    function togglePinVisibility() {
+      const input = document.getElementById("pin-input");
+      const icon = document.getElementById("pin-eye-icon");
+      if (input.type === "password") {
+        input.type = "text";
+        icon.className = "fa-solid fa-eye-slash";
+      } else {
+        input.type = "password";
+        icon.className = "fa-solid fa-eye";
+      }
+    }
+
     async function attemptUnlock() {
       const pin = document.getElementById("pin-input").value.trim();
       const errDiv = document.getElementById("unlock-err");
@@ -408,7 +425,7 @@
 
       try {
         // Fetch encrypted payload data.enc from server
-        const res = await fetch("data.enc?t=" + Date.now());
+        const res = await fetch("data.enc?t=" + Date.now(), { cache: "no-store" });
         if (!res.ok) throw new Error("Kunde inte hämta data.enc från webbservern.");
         const envelope = await res.json();
 
@@ -457,7 +474,11 @@
         renderMobileCards();
       } catch (err) {
         console.error(err);
-        errDiv.innerText = "Fel PIN-kod eller skadad datafil.";
+        if (err.name === "OperationError" || (err.message && err.message.toLowerCase().includes("operation failed"))) {
+          errDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Fel PIN-kod. Kontrollera koden och försök igen.`;
+        } else {
+          errDiv.innerText = err.message || "Fel PIN-kod eller skadad datafil.";
+        }
       }
     }
 
