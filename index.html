@@ -350,6 +350,24 @@
     <div class="unlock-err" id="unlock-err"></div>
   </div>
 
+  
+  <!-- Mobile Card Zoom Lightbox Modal -->
+  <div class="modal-overlay" id="mob-zoom-modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:2000; padding:1rem;" onclick="closeMobileZoomModal(event)">
+    <div style="position:relative; display:flex; flex-direction:column; align-items:center; max-width:96vw; max-height:94vh;" onclick="event.stopPropagation()">
+      <button onclick="closeMobileZoomModal()" style="position:absolute; top:-12px; right:-12px; width:34px; height:34px; border-radius:50%; font-size:1.2rem; background:#ef4444; color:#fff; border:2px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,0.8); z-index:20; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
+      <div style="background:#0f172a; border:2px solid #38bdf8; border-radius:12px; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center;">
+        <div style="background:#000; padding:0.75rem; display:flex; justify-content:center; align-items:center; max-height:72vh;">
+          <img id="mob-zoom-img" src="" alt="Kort" style="max-height:68vh; max-width:88vw; height:auto; width:auto; object-fit:contain; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.9);">
+        </div>
+        <div style="background:#1e293b; width:100%; padding:0.75rem 1rem; border-top:1px solid #334155; text-align:center;">
+          <div id="mob-zoom-title" style="font-weight:700; font-size:1.05rem; color:#fff;"></div>
+          <div id="mob-zoom-meta" style="font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem;"></div>
+          <div id="mob-zoom-price" style="font-weight:700; font-size:1.15rem; color:var(--accent-emerald); margin-top:0.3rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Unlocked Mobile Viewer -->
   <div class="app-content" id="app-content">
 
@@ -375,6 +393,15 @@
 
     <!-- Search & Filters -->
     <div class="filter-section">
+      <!-- User Set / Binder Picker -->
+      <div style="margin-bottom:0.6rem;">
+        <label for="mob-userset-select" style="font-size:0.75rem; font-weight:700; color:var(--accent-blue); display:flex; align-items:center; gap:0.35rem; margin-bottom:0.25rem;">
+          <i class="fa-solid fa-folder-open"></i> Pärm / Egen Uppsättning:
+        </label>
+        <select id="mob-userset-select" onchange="onMobileUserSetChange()" style="width:100%; background:#1e293b; color:#fff; border:1px solid #475569; border-radius:6px; padding:0.45rem 0.65rem; font-size:0.85rem; font-weight:600; outline:none;">
+          <option value="__all__">📂 Hela Samlingen (Alla kort)</option>
+        </select>
+      </div>
       <div class="search-input-wrap">
         <input type="text" id="mob-search" placeholder="Sök kort, set eller nummer..." oninput="renderMobileCards()">
         <i class="fa-solid fa-magnifying-glass"></i>
@@ -398,6 +425,63 @@
   <script>
     let DECRYPTED_PAYLOAD = null;
     let ACTIVE_FILTER = 'all';
+    let ACTIVE_USER_SET = '__all__';
+
+    function populateMobileUserSets() {
+      const select = document.getElementById("mob-userset-select");
+      if (!select || !DECRYPTED_PAYLOAD) return;
+      const userSets = DECRYPTED_PAYLOAD.userSets || [];
+      const collection = DECRYPTED_PAYLOAD.collection || [];
+      let html = `<option value="__all__">📂 Hela Samlingen (${collection.length} rader)</option>`;
+      userSets.forEach(us => {
+        const cardsInUs = collection.filter(item => item.userSets && item.userSets.includes(us.name));
+        const qty = cardsInUs.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        html += `<option value="${escapeHtml(us.name)}">📁 ${escapeHtml(us.name)} (${qty} st)</option>`;
+      });
+      select.innerHTML = html;
+      select.value = ACTIVE_USER_SET;
+    }
+
+    function onMobileUserSetChange() {
+      ACTIVE_USER_SET = document.getElementById("mob-userset-select").value;
+      populateMobileUserSets();
+        renderMobileDashboard();
+      renderMobileCards();
+    }
+
+    function openMobileZoomModal(cardId, lang) {
+      if (!DECRYPTED_PAYLOAD) return;
+      const catalog = DECRYPTED_PAYLOAD.catalog || { cards: [] };
+      const card = (catalog.cards || []).find(c => c.id === cardId);
+      if (!card) return;
+      const langToUse = lang || "en";
+      const name = card.names?.[langToUse] || card.names?.["en"] || card.id;
+      const imgUrl = getCardImageUrl(card, langToUse);
+      const fallbackImg = card.imageUrl || card.images?.["en"] || "";
+      const price = card.prices?.market || 0.0;
+
+      const imgElem = document.getElementById("mob-zoom-img");
+      imgElem.src = imgUrl;
+      imgElem.onerror = function() {
+        if (this.dataset.fb !== "1") {
+          this.dataset.fb = "1";
+          this.src = fallbackImg;
+        }
+      };
+
+      document.getElementById("mob-zoom-title").innerText = name;
+      document.getElementById("mob-zoom-meta").innerText = `#${card.number || ''} • ${card.setId || ''} • ${card.rarity || 'Common'}`;
+      document.getElementById("mob-zoom-price").innerText = `$${price.toFixed(2)}`;
+      document.getElementById("mob-zoom-modal").style.display = "flex";
+    }
+
+    function closeMobileZoomModal(event) {
+      if (event && event.target && event.target.id !== "mob-zoom-modal" && !event.target.closest("button")) {
+        return;
+      }
+      const modal = document.getElementById("mob-zoom-modal");
+      if (modal) modal.style.display = "none";
+    }
 
     function togglePinVisibility() {
       const input = document.getElementById("pin-input");
@@ -470,6 +554,7 @@
         document.getElementById("app-content").style.display = "block";
         document.getElementById("btn-lock").style.display = "block";
 
+        populateMobileUserSets();
         renderMobileDashboard();
         renderMobileCards();
       } catch (err) {
@@ -492,11 +577,30 @@
     }
 
     function renderMobileDashboard() {
-      const d = DECRYPTED_PAYLOAD.dashboard || {};
-      document.getElementById("mob-total-cards").innerText = d.totalCards || 0;
-      document.getElementById("mob-total-value").innerText = `$${(d.totalValue || 0).toFixed(2)}`;
-      document.getElementById("mob-unique-cards").innerText = d.totalUniqueCards || 0;
-      document.getElementById("mob-total-cost").innerText = `$${(d.totalCost || 0).toFixed(2)}`;
+      const collection = DECRYPTED_PAYLOAD.collection || [];
+      const catalog = DECRYPTED_PAYLOAD.catalog || { cards: [] };
+      const cardMap = {};
+      (catalog.cards || []).forEach(c => cardMap[c.id] = c);
+
+      let items = collection;
+      if (ACTIVE_USER_SET !== '__all__') {
+        items = collection.filter(it => it.userSets && it.userSets.includes(ACTIVE_USER_SET));
+      }
+
+      const totalCards = items.reduce((s, it) => s + (it.quantity || 1), 0);
+      let totalVal = 0;
+      let totalCost = 0;
+      for (const it of items) {
+        const meta = cardMap[it.cardId] || {};
+        const p = meta.prices?.market || 0.0;
+        totalVal += p * (it.quantity || 1);
+        totalCost += (it.costBasis || 0.0) * (it.quantity || 1);
+      }
+
+      document.getElementById("mob-total-cards").innerText = totalCards;
+      document.getElementById("mob-total-value").innerText = `$${totalVal.toFixed(2)}`;
+      document.getElementById("mob-unique-cards").innerText = items.length;
+      document.getElementById("mob-total-cost").innerText = `$${totalCost.toFixed(2)}`;
     }
 
     function setMobileFilter(filter, btn) {
@@ -531,10 +635,11 @@
       (catalog.cards || []).forEach(c => cardMap[c.id] = c);
 
       const filtered = collection.filter(item => {
+        if (ACTIVE_USER_SET !== '__all__' && (!item.userSets || !item.userSets.includes(ACTIVE_USER_SET))) return false;
         if (ACTIVE_FILTER !== 'all' && item.language !== ACTIVE_FILTER) return false;
         const meta = cardMap[item.cardId] || {};
         const name = (meta.names?.[item.language] || meta.names?.["en"] || item.cardId).toLowerCase();
-        return name.includes(search) || (meta.number || "").toLowerCase().includes(search);
+        return name.includes(search) || (meta.number || "").toLowerCase().includes(search) || (item.userSets || []).some(u => u.toLowerCase().includes(search));
       });
 
       if (filtered.length === 0) {
@@ -552,16 +657,19 @@
         const subtotal = unitPrice * (item.quantity || 1);
         const flagBadge = lang === 'ja' ? '🇯🇵 JA' : lang === 'zh' ? '🇨🇳 ZH' : '🇬🇧 EN';
 
+        const userSetPills = (item.userSets || []).map(us => `<span class="tag-badge" style="background:#0284c7; color:#fff;">📁 ${escapeHtml(us)}</span>`).join(" ");
+
         return `
           <div class="mobile-card-row">
-            <img class="card-thumb" src="${imgUrl}" alt="${escapeHtml(name)}" onerror="if(this.dataset.fb!=='1'){this.dataset.fb='1';this.src='${fallbackImg}';}">
+            <img class="card-thumb" src="${imgUrl}" alt="${escapeHtml(name)}" style="cursor:zoom-in;" onclick="openMobileZoomModal('${item.cardId}', '${lang}')" onerror="if(this.dataset.fb!=='1'){this.dataset.fb='1';this.src='${fallbackImg}';}">
             <div class="card-info">
-              <div class="card-info-name">${escapeHtml(name)}</div>
+              <div class="card-info-name" style="cursor:pointer;" onclick="openMobileZoomModal('${item.cardId}', '${lang}')">${escapeHtml(name)}</div>
               <div class="card-info-meta">#${escapeHtml(meta.number || '')} • ${escapeHtml(meta.setId || '')}</div>
               <div class="card-info-tags">
                 <span class="tag-badge">${flagBadge}</span>
                 <span class="tag-badge">${escapeHtml(item.condition)}</span>
                 <span class="tag-badge">${escapeHtml(item.finish)}</span>
+                ${userSetPills}
               </div>
             </div>
             <div class="card-pricing">
