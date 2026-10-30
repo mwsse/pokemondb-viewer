@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PokemonDB — Mobil Samling</title>
+  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --border-color: #334155;
+      --primary: #ef4444;
+      --accent-emerald: #10b981;
+      --accent-blue: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      background: #0b1120;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.8rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .top-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .top-brand i {
+      color: var(--primary);
+    }
+
+    .btn-lock {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      padding: 0.3rem;
+      cursor: pointer;
+    }
+
+    /* Unlock Screen */
+    .unlock-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .lock-icon-wrap {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+    }
+
+    .pin-input {
+      background: #1e293b;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1.5rem;
+      text-align: center;
+      letter-spacing: 0.3rem;
+      padding: 0.75rem 1rem;
+      width: 200px;
+      margin: 1.5rem 0;
+      outline: none;
+    }
+
+    .pin-input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-unlock {
+      background: var(--primary);
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 200px;
+    }
+
+    .unlock-err {
+      color: #ef4444;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+      min-height: 1.2rem;
+    }
+
+    /* App Container */
+    .app-content {
+      display: none;
+      flex: 1;
+      padding: 1rem;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* KPI Summary Card */
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .summary-item .title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .summary-item .val {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-top: 0.2rem;
+    }
+
+    .val.green {
+      color: var(--accent-emerald);
+    }
+
+    /* Search & Filter */
+    .filter-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .search-input-wrap {
+      position: relative;
+    }
+
+    .search-input-wrap input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.65rem 2.5rem 0.65rem 0.85rem;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .search-input-wrap i {
+      position: absolute;
+      right: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    .chips-scroll {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.3rem;
+      scrollbar-width: none;
+    }
+    .chips-scroll::-webkit-scrollbar { display: none; }
+
+    .chip-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.35rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .chip-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Cards List */
+    .card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .mobile-card-row {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.75rem;
+      display: flex;
+      gap: 0.85rem;
+      align-items: center;
+    }
+
+    .card-thumb {
+      width: 55px;
+      height: 75px;
+      border-radius: 6px;
+      background: #0f172a;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .card-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      min-width: 0;
+    }
+
+    .card-info-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-info-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .card-info-tags {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-top: 0.15rem;
+    }
+
+    .tag-badge {
+      font-size: 0.68rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: #334155;
+      color: #cbd5e1;
+    }
+
+    .card-pricing {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.2rem;
+    }
+
+    .qty-bubble {
+      background: var(--accent-blue);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 10px;
+    }
+
+    .val-total {
+      font-weight: 700;
+      color: var(--accent-emerald);
+      font-size: 1rem;
+    }
+
+    .val-unit {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <div class="top-bar">
+    <div class="top-brand">
+      <i class="fa-solid fa-circle-dot"></i>
+      <span>PokemonDB</span>
+    </div>
+    <button class="btn-lock" id="btn-lock" onclick="lockCollection()" style="display:none;" title="Lås">
+      <i class="fa-solid fa-lock"></i>
+    </button>
+  </div>
+
+  <!-- PIN Unlock Gate -->
+  <div class="unlock-screen" id="unlock-screen">
+    <div class="lock-icon-wrap">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+    <h2>Privat Samling</h2>
+    <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.4rem;">
+      Ange din personliga PIN för att låsa upp och dekryptera datan.
+    </p>
+    <input type="password" id="pin-input" class="pin-input" pattern="[0-9]*" inputmode="numeric" placeholder="••••" maxlength="8">
+    <button class="btn-unlock" onclick="attemptUnlock()">
+      Lås Upp
+    </button>
+    <div class="unlock-err" id="unlock-err"></div>
+  </div>
+
+  <!-- Unlocked Mobile Viewer -->
+  <div class="app-content" id="app-content">
+
+    <!-- KPI Summary -->
+    <div class="summary-card">
+      <div class="summary-item">
+        <div class="title">Totalt Antal Kort</div>
+        <div class="val" id="mob-total-cards">0</div>
+      </div>
+      <div class="summary-item">
+        <div class="title">Uppskattat Värde</div>
+        <div class="val green" id="mob-total-value">$0.00</div>
+      </div>
+      <div class="summary-item">
+        <div class="title">Unika Kort</div>
+        <div class="val" id="mob-unique-cards">0</div>
+      </div>
+      <div class="summary-item">
+        <div class="title">Inköpskostnad</div>
+        <div class="val" id="mob-total-cost">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="filter-section">
+      <div class="search-input-wrap">
+        <input type="text" id="mob-search" placeholder="Sök kort, set eller nummer..." oninput="renderMobileCards()">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </div>
+      <div class="chips-scroll" id="mob-filter-chips">
+        <button class="chip-btn active" onclick="setMobileFilter('all', this)">Alla</button>
+        <button class="chip-btn" onclick="setMobileFilter('en', this)">🇬🇧 Engelska</button>
+        <button class="chip-btn" onclick="setMobileFilter('ja', this)">🇯🇵 Japanska</button>
+        <button class="chip-btn" onclick="setMobileFilter('zh', this)">🇨🇳 Kinesiska</button>
+      </div>
+    </div>
+
+    <!-- Cards List -->
+    <div class="card-list" id="mob-card-list">
+      <!-- Populated via JS -->
+    </div>
+
+  </div>
+
+  <!-- Decryption & Client Logic -->
+  <script>
+    let DECRYPTED_PAYLOAD = null;
+    let ACTIVE_FILTER = 'all';
+
+    async function attemptUnlock() {
+      const pin = document.getElementById("pin-input").value.trim();
+      const errDiv = document.getElementById("unlock-err");
+      errDiv.innerText = "";
+
+      if (!pin) {
+        errDiv.innerText = "Ange din PIN-kod.";
+        return;
+      }
+
+      errDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Dekrypterar samling...`;
+
+      try {
+        // Fetch encrypted payload data.enc from server
+        const res = await fetch("data.enc?t=" + Date.now());
+        if (!res.ok) throw new Error("Kunde inte hämta data.enc från webbservern.");
+        const envelope = await res.json();
+
+        const salt = new Uint8Array(envelope.salt);
+        const iv = new Uint8Array(envelope.iv);
+        const cipherData = new Uint8Array(envelope.cipher);
+
+        const enc = new TextEncoder();
+        const baseKey = await window.crypto.subtle.importKey(
+          "raw",
+          enc.encode(pin),
+          { name: "PBKDF2" },
+          false,
+          ["deriveKey"]
+        );
+
+        const derivedKey = await window.crypto.subtle.deriveKey(
+          {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 100000,
+            hash: "SHA-256"
+          },
+          baseKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["decrypt"]
+        );
+
+        const plainBuffer = await window.crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: iv },
+          derivedKey,
+          cipherData
+        );
+
+        const dec = new TextDecoder();
+        const jsonStr = dec.decode(plainBuffer);
+        DECRYPTED_PAYLOAD = JSON.parse(jsonStr);
+
+        // Transition to unlocked state
+        document.getElementById("unlock-screen").style.display = "none";
+        document.getElementById("app-content").style.display = "block";
+        document.getElementById("btn-lock").style.display = "block";
+
+        renderMobileDashboard();
+        renderMobileCards();
+      } catch (err) {
+        console.error(err);
+        errDiv.innerText = "Fel PIN-kod eller skadad datafil.";
+      }
+    }
+
+    function lockCollection() {
+      DECRYPTED_PAYLOAD = null;
+      document.getElementById("pin-input").value = "";
+      document.getElementById("unlock-screen").style.display = "flex";
+      document.getElementById("app-content").style.display = "none";
+      document.getElementById("btn-lock").style.display = "none";
+      document.getElementById("unlock-err").innerText = "";
+    }
+
+    function renderMobileDashboard() {
+      const d = DECRYPTED_PAYLOAD.dashboard || {};
+      document.getElementById("mob-total-cards").innerText = d.totalCards || 0;
+      document.getElementById("mob-total-value").innerText = `$${(d.totalValue || 0).toFixed(2)}`;
+      document.getElementById("mob-unique-cards").innerText = d.totalUniqueCards || 0;
+      document.getElementById("mob-total-cost").innerText = `$${(d.totalCost || 0).toFixed(2)}`;
+    }
+
+    function setMobileFilter(filter, btn) {
+      ACTIVE_FILTER = filter;
+      document.querySelectorAll(".chip-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderMobileCards();
+    }
+
+    function getCardImageUrl(meta, lang = "en") {
+      if (!meta) return "";
+      if (meta.images && typeof meta.images === "object") {
+        if (meta.images[lang]) return meta.images[lang];
+        if (lang === "zh") {
+          if (meta.images["zh-tw"]) return meta.images["zh-tw"];
+          if (meta.images["zh-cn"]) return meta.images["zh-cn"];
+        }
+        if (meta.images["en"]) return meta.images["en"];
+        const anyImg = Object.values(meta.images).find(x => !!x);
+        if (anyImg) return anyImg;
+      }
+      return meta.imageUrl || "";
+    }
+
+    function renderMobileCards() {
+      const container = document.getElementById("mob-card-list");
+      const search = (document.getElementById("mob-search").value || "").toLowerCase();
+
+      const collection = DECRYPTED_PAYLOAD.collection || [];
+      const catalog = DECRYPTED_PAYLOAD.catalog || { cards: [] };
+      const cardMap = {};
+      (catalog.cards || []).forEach(c => cardMap[c.id] = c);
+
+      const filtered = collection.filter(item => {
+        if (ACTIVE_FILTER !== 'all' && item.language !== ACTIVE_FILTER) return false;
+        const meta = cardMap[item.cardId] || {};
+        const name = (meta.names?.[item.language] || meta.names?.["en"] || item.cardId).toLowerCase();
+        return name.includes(search) || (meta.number || "").toLowerCase().includes(search);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-muted);">Inga kort matchar sökningen.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const meta = cardMap[item.cardId] || {};
+        const lang = item.language || "en";
+        const name = meta.names?.[lang] || meta.names?.["en"] || item.cardId;
+        const imgUrl = getCardImageUrl(meta, lang);
+        const fallbackImg = meta.imageUrl || meta.images?.["en"] || "";
+        const unitPrice = meta.prices?.market || 0.0;
+        const subtotal = unitPrice * (item.quantity || 1);
+        const flagBadge = lang === 'ja' ? '🇯🇵 JA' : lang === 'zh' ? '🇨🇳 ZH' : '🇬🇧 EN';
+
+        return `
+          <div class="mobile-card-row">
+            <img class="card-thumb" src="${imgUrl}" alt="${escapeHtml(name)}" onerror="if(this.dataset.fb!=='1'){this.dataset.fb='1';this.src='${fallbackImg}';}">
+            <div class="card-info">
+              <div class="card-info-name">${escapeHtml(name)}</div>
+              <div class="card-info-meta">#${escapeHtml(meta.number || '')} • ${escapeHtml(meta.setId || '')}</div>
+              <div class="card-info-tags">
+                <span class="tag-badge">${flagBadge}</span>
+                <span class="tag-badge">${escapeHtml(item.condition)}</span>
+                <span class="tag-badge">${escapeHtml(item.finish)}</span>
+              </div>
+            </div>
+            <div class="card-pricing">
+              <span class="qty-bubble">${item.quantity || 1} st</span>
+              <span class="val-total">$${subtotal.toFixed(2)}</span>
+              <span class="val-unit">$${unitPrice.toFixed(2)}/st</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    // Auto-focus PIN
+    window.onload = () => {
+      document.getElementById("pin-input").focus();
+    };
+  </script>
+</body>
+</html>
