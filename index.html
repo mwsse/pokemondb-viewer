@@ -379,7 +379,7 @@
       </div>
       <div class="summary-item">
         <div class="title">Uppskattat Värde</div>
-        <div class="val green" id="mob-total-value">$0.00</div>
+        <div class="val green" id="mob-total-value">--</div>
       </div>
       <div class="summary-item">
         <div class="title">Unika Kort</div>
@@ -387,7 +387,7 @@
       </div>
       <div class="summary-item">
         <div class="title">Inköpskostnad</div>
-        <div class="val" id="mob-total-cost">$0.00</div>
+        <div class="val" id="mob-total-cost">--</div>
       </div>
     </div>
 
@@ -424,6 +424,14 @@
   <!-- Decryption & Client Logic -->
   <script>
     let DECRYPTED_PAYLOAD = null;
+
+    function formatMobilePrice(usdVal, allowZero = false) {
+      if (usdVal === null || usdVal === undefined || usdVal === "" || isNaN(usdVal)) return "--";
+      const num = Number(usdVal);
+      if (num <= 0 && !allowZero) return "--";
+      return `$${num.toFixed(2)}`;
+    }
+
     let ACTIVE_FILTER = 'all';
     let ACTIVE_USER_SET = '__all__';
 
@@ -471,7 +479,7 @@
 
       document.getElementById("mob-zoom-title").innerText = name;
       document.getElementById("mob-zoom-meta").innerText = `#${card.number || ''} • ${card.setId || ''} • ${card.rarity || 'Common'}`;
-      document.getElementById("mob-zoom-price").innerText = `$${price.toFixed(2)}`;
+      document.getElementById("mob-zoom-price").innerText = formatMobilePrice(price);
       document.getElementById("mob-zoom-modal").style.display = "flex";
     }
 
@@ -598,9 +606,9 @@
       }
 
       document.getElementById("mob-total-cards").innerText = totalCards;
-      document.getElementById("mob-total-value").innerText = `$${totalVal.toFixed(2)}`;
+      document.getElementById("mob-total-value").innerText = totalVal > 0 ? `$${totalVal.toFixed(2)}` : "--";
       document.getElementById("mob-unique-cards").innerText = items.length;
-      document.getElementById("mob-total-cost").innerText = `$${totalCost.toFixed(2)}`;
+      document.getElementById("mob-total-cost").innerText = totalCost > 0 ? `$${totalCost.toFixed(2)}` : "--";
     }
 
     function setMobileFilter(filter, btn) {
@@ -674,8 +682,8 @@
             </div>
             <div class="card-pricing">
               <span class="qty-bubble">${item.quantity || 1} st</span>
-              <span class="val-total">$${subtotal.toFixed(2)}</span>
-              <span class="val-unit">$${unitPrice.toFixed(2)}/st</span>
+              <span class="val-total">${formatMobilePrice(subtotal)}</span>
+              <span class="val-unit">${unitPrice > 0 ? `$${unitPrice.toFixed(2)}/st` : "--"}</span>
             </div>
           </div>
         `;
